@@ -43,9 +43,11 @@ echo "The bedtools took $runtime seconds to execute."
 start_time=$(date +%s)
 
 mosdepth NA12878 $bam
+awk 'NR==1 {print} {last=$0} END {print last}' NA12878.mosdepth.summary.txt
+awk '{last=$4} END {print "Average coverage from mosdepth = ",last}' NA12878.mosdepth.summary.txt
 
 end_time=$(date +%s)
 
 runtime=$((end_time - start_time))
 
-echo "The samtools took $runtime seconds to execute."
+echo "The mosdepth took $runtime seconds to execute."
