@@ -1,0 +1,127 @@
+---
+title: "Coverage Calculation"
+author: "QiongJia"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Design  
+
+To calculate the average coverage(sequencing depth) for the given sample BAM file, two approach are presented below.  
+
+1. The first one is based on the coverage calculation equation:   
+$$ C = \frac{LN}{G} $$
+where 
+ - $C$ is coverage.  
+ - $G$ is the haploid genome length. 
+ - $L$ is the read length in the sequencing. 
+ - $N$ is the number of reads. 
+
+The *samtool idxstats* can be used to get chromosome lengths and number of mapped reads.
+
+2. The second one is more precise. The *samtool depth* can be used to calculate the coverage at each genomic position and the average coverage of the given BAM file.  
+
+3. At the end, two other tools *bedtools genomecov* and *mosdepth* are presented briefly in coverage calculation.   
+
+### Download BAM file 
+
+```{linux download, echo=FALSE}
+cd ~
+mkdir TakeHomeFulgent
+cd TakeHomeFulgent
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/data/NA12878/exome_alignment/NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
+bam=NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
+```
+
+### Quick estimate 
+
+```{linux quick, echo=FALSE}
+samtools idxstats $bam \
+| awk -vreadlen=100 '
+    {
+        len += $2
+        nreads += $3
+    }
+    END {
+        print nreads * readlen / len
+    }
+'
+```
+
+The average coverage of given BAM file is: **5.26501**.  
+
+However, we don't have the information of the read length and a arbitrary number is used here so the estimation is not accurate.  
+
+### Coverage calculation for each position 
+
+**Step1:** calculate the coverage at each genomic position. 
+
+```{linux samtools depth, echo=FALSE}
+samtools depth -a $bam > NA12878_coverage.txt
+```
+
+Overlook the coverage output.   
+
+```{linux samtools overlook, echo=FALSE}
+head -n 5 NA12878_coverage.txt
+```
+![NA12878_coverage.txt](NA12878_coverage.txt.png)
+Each line represents a genomic position. Three columns are included int he coverage output: 
+- Chromosome;
+- Position;
+- Reads covered this position. 
+
+**Step2:** calculate the average coverage. 
+
+```{linux samtools average, echo=FALSE}
+awk '{sum+=$3} END { print "Average coverage = ",sum/NR}' NA12878_coverage.txt
+```
+
+The average coverage of given BAM file is: ** 30 **
+
+**Alternative calculation:**  
+The total length of the genome can also be calculated as below:  
+
+```{linux samtools another, echo=FALSE}
+# @SQ is the reference sequence dictionary and LN in this line shows the reference sequence length. So the $tot here represent the totle length of sample genome
+tot=${(samtools view -H $bam | awk -vFS=: '/^@SQ/ {sum+=$3} END {print sum}')}
+echo $tot
+```
+
+Then the average coverage is calculated as below: 
+
+```{linux samtools another, echo=FALSE}
+sum=$(awk '{sum+=$3} END {print sum}' NA12878_coverage.txt)
+echo $sum
+avg=$(echo "$sum/$tot" | bc -l)
+printf "The average coverage is: %.2f\n" "$avg"
+```
+
+The average coverage of given BAM file is: ** 30 **
+
+### Other methods  
+
+1. *bedtools genomecov -d* also reports the genome coverage per base as below:  
+
+```{linux bedtools, echo=FALSE}
+# To use -ibam flag in bedtools genomecov, the bam file is needed to be sorted by position
+samtools sort $bam | bedtools genomecov -ibam stdin -d > NA12878_genomecov.txt
+```
+
+Then the average coverage would be: 
+
+```{linux bedtools_average, echo=FALSE}
+awk '{sum+=$3} END { print "Average coverage = ",sum/NR}' NA12878_genomecov.txt
+```
+
+The average coverage of given BAM file is: ** 30 **
+
+2. *mosdepth* can report coverage for a user defined region as below: 
+
+```{linux mosdepth, echo=FALSE}
+mosdepth --by regions.bed NA12878 NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
+```
