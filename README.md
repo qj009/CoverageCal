@@ -177,7 +177,7 @@ awk '{last=$4} END {print "Average coverage = ",last}' NA12878.mosdepth.summary.
 
 Average coverage = **3.25**
 
-It can also report coverage based on the user defined region by using ***--by <bed|window> ***. 
+It can also report coverage based on the user defined region by using ***--by <bed|window>***. 
 
 ## Runing time comparison  
 
