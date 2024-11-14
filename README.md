@@ -18,4 +18,4 @@ where
 
 3. At the end, two other tools *bedtools genomecov* and *mosdepth* are presented briefly in coverage calculation.
 
-The full report can be found here[]
+The full report can be found [here](https://github.com/qj009/CoverageCal/blob/main/Coverage_Calulation.Rmd)
