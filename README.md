@@ -19,7 +19,7 @@ output:
 To calculate the average coverage(sequencing depth) for the given sample BAM file, two approach are presented below.  
 
 1. The first one is based on the coverage calculation equation:   
-$$ C = \frac{LN}{G} $$
+$$C = \frac{LN}{G}$$
 where 
  - $C$ is coverage.  
  - $G$ is the haploid genome length. 
