@@ -108,7 +108,7 @@ echo $sum
 avg=$(echo "$sum/$tot" | bc -l)
 echo $avg
 # 3.64239
-printf "The average coverage is: %.5f\n" "$avg"
+printf "The average coverage is: %.2f\n" "$avg"
 ```
 
 The average coverage is: **3.64**  
