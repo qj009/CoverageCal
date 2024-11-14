@@ -18,8 +18,10 @@ output:
 
 To calculate the average coverage(sequencing depth) for the given sample BAM file, two approach are presented below.  
 
-1. The first one is based on the coverage calculation equation:   
+1. The first one is based on the coverage calculation equation:
+
 $$C = \frac{LN}{G}$$
+
 where 
  - $C$ is coverage.  
  - $G$ is the haploid genome length. 
@@ -39,9 +41,7 @@ where
 cd ~
 mkdir TakeHomeFulgent
 cd TakeHomeFulgent
-wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/data/
-NA12878/exome_alignment/
-NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/data/NA12878/exome_alignment/NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
 
 bam=NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
 ```
