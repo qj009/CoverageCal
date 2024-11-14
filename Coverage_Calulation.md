@@ -21,11 +21,11 @@ To calculate the average coverage(sequencing depth) for the given sample BAM fil
 1. The first one is based on the coverage calculation equation:   
 $$C = \frac{LN}{G}$$  
 
-where 
+where    
  - $C$ is coverage.  
- - $G$ is the haploid genome length. 
- - $L$ is the read length in the sequencing. 
- - $N$ is the number of reads.
+ - $G$ is the haploid genome length.  
+ - $L$ is the read length in the sequencing.  
+ - $N$ is the number of reads.  
  
     The ***samtool idxstats*** can be used to get chromosome lengths and number of mapped reads.
 
