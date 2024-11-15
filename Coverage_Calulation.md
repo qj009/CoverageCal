@@ -1,15 +1,12 @@
 ---
 title: "Coverage Calculation"
 author: "QiongJia"
-date: "2024-11-14"
+date: "2024-11-15"
 output: 
   html_document:
     highlight: pygments
     toc: true
     keep_md: true
-  # pdf_document:
-  #   toc: true
-  #   toc_depth: 3
 ---
 
 
@@ -28,63 +25,83 @@ where
  - $L$ is the read length in the sequencing.  
  - $N$ is the number of reads.  
  
-    The ***samtool idxstats*** can be used to get chromosome lengths and number of mapped reads.
+   The haploid reference genome (GRCh38) size is $3,099,734,149$ bases ([Reference](https://www.ncbi.nlm.nih.gov/grc/human/data)). The read length and number can be obtained from ***.bam.bas*** file. 
 
-2. The second one is more precise. The ***samtool depth*** can be used to calculate the coverage at each genomic position and the average coverage of the given BAM file.  
+2. The second one is more precise. The ***samtool depth*** can be used to calculate the coverage at each genomic position and the average coverage of the given BAM file.  Same as ***bedtools genomecov***. 
 
-3. At the end, two other tools ***bedtools genomecov*** and ***mosdepth*** are presented briefly in coverage calculation.   
+3. At the end, one another tools ***mosdepth*** is presented briefly in coverage calculation.   
 
 ## Download BAM file 
 
 
 ``` bash
+# make working directory
 cd ~
 mkdir TakeHomeFulgent
 cd TakeHomeFulgent
-wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/data/
-NA12878/exome_alignment/
-NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
 
-bam=NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam
+# download cram file
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/CEU/NA12878/alignment/NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.cram
+
+# download cram index file
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/CEU/NA12878/alignment/NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.cram.crai
+
+# download .bam.bas file
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/CEU/NA12878/alignment/NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.bam.bas
+
+```
+
+
+``` bash
+# define work variable
+cram=NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.cram
+bas=NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.bam.bas
 ```
 
 ## Quick estimate 
 
 
 ``` bash
-samtools idxstats $bam \
-| awk -vreadlen=100 '
-   {
-       len += $2
-       nreads += $3
-   }
-   END {
-       print nreads * readlen / len
-   }
-   '
+# reference genome size
+G=3099734149
+# read length equals total bases number / total reads number
+L=$(awk 'NR==2 {print $9 / $11}' "$bas")
+# reads number equals total reads number - duplicate reads number
+N=$(awk 'NR==2 {print $11-$21}' "$bas")
+# coverage calculation
+C=$(echo "$N*$L/$G" | bc -l)
+printf "The average coverage is: %.2f\n", "$C"
 ```
 
-The average coverage of given BAM file is: **5.26501**.  
-
-However, we don't have the information of the read length and a arbitrary number is used here so the estimation is not accurate.  
+The average coverage is: **5.77**  
 
 ## Coverage calculation for each position 
 
-### Step1: calculate the coverage at each genomic position. 
+### samtools  
+
+**Step1**: calculate the coverage at each genomic position. 
 
 
 ``` bash
-samtools depth -a $bam > NA12878_coverage.txt
+samtools depth -a $cram > NA12878_cram_coverage.txt
 ```
 
 Overlook the coverage output.   
 
 
 ``` bash
-head -n 5 NA12878_coverage.txt
+head -n 5 NA12878_cram_coverage.txt
 ```
-![](NA12878_coverage.txt.png)    
+  
 
+```
+##     V1 V2 V3
+## 1 chr1  1  0
+## 2 chr1  2  0
+## 3 chr1  3  0
+## 4 chr1  4  0
+## 5 chr1  5  0
+```
   
 Each line represents a genomic position. Three columns are included int he coverage output:   
 
@@ -92,44 +109,14 @@ Each line represents a genomic position. Three columns are included int he cover
 - Position;  
 - Reads covered this position.   
 
-### Step2: calculate the average coverage. 
+**Step2**: calculate the average coverage. 
 
 
 ``` bash
-awk '{sum+=$3} END { print "Average coverage = ",sum/NR}' NA12878_coverage.txt
+awk '{sum+=$3} END { print "Average coverage from samtools = ",sum/NR}' NA12878_cram_coverage.txt
 ```
 
-Average coverage = **3.64239**
-
-### Alternative calculation:  
-
-The total length of the genome can also be calculated as below:  
-
-
-``` bash
-## @SQ is the reference sequence dictionary and LN in this line shows the reference sequence length. 
-## So the $tot here represent the totle length of sample genome
-tot=$(samtools view -H $bam | awk -vFS=: '/^@SQ/ {sum+=$3} END {print sum}')
-echo $tot
-# 3101804739
-```
-
-Then the average coverage is calculated as below: 
-
-
-``` bash
-sum=$(awk '{sum+=$3} END {print sum}' NA12878_coverage.txt)
-echo $sum
-# 11297985096
-avg=$(echo "$sum/$tot" | bc -l)
-echo $avg
-# 3.64239
-printf "The average coverage is: %.2f\n" "$avg"
-```
-
-The average coverage is: **3.64**  
-
-## Other methods  
+Average coverage from samtools = **5.14261**
 
 ### bedtools  
 
@@ -138,54 +125,36 @@ The average coverage is: **3.64**
 
 ``` bash
 # To use -ibam flag in bedtools genomecov, the bam file is needed to be sorted by position
-samtools sort $bam | bedtools genomecov -ibam stdin -d > NA12878_genomecov.txt
+samtools sort $cram | bedtools genomecov -ibam stdin -d > NA12878_cram_genomecov.txt
 ```
 
 Then the average coverage would be: 
 
 
 ``` bash
-awk '{sum+=$3} END { print "Average coverage = ",sum/NR}' NA12878_genomecov.txt
+awk '{sum+=$3} END { print "Average coverage from bedtools = ",sum/NR}' NA12878_cram_genomecov.txt
 ```
 
-Average coverage = **3.99539**
+Average coverage from bedtools = **5.59374**
 
-### mosdepth 
 
-***mosdepth*** can report coverage for both per-base and summary result at the same time.
+## Other avaialble tools 
+
+***mosdepth*** can report coverage for both per-base and summary result at the same time. It can take **BAM** file directly, but it needs reference genome file with **CRAM** file as input. 
 
 
 ``` bash
-mosdepth NA12878 $bam
+mosdepth NA12878 $cram
 ```
 
-The file ended with ***.mosdepth.summary.txt*** contain the average coverage result.  
+The file ended with ***.mosdepth.summary.txt*** contain the average coverage result.
 
-
-``` bash
-awk 'NR==1 {print} {last=$0} END {print last}' NA12878.mosdepth.summary.txt
-```
-
-
-```
-##    chrom     length       bases mean min  max
-## 85 total 3101804739 10082458770 3.25   0 4343
-```
-
-
-``` bash
-awk '{last=$4} END {print "Average coverage = ",last}' NA12878.mosdepth.summary.txt
-```
-
-Average coverage = **3.25**
-
-It can also report coverage based on the user defined region by using ***--by <bed|window>***. 
+Besides, It can also report coverage based on the user defined region by using ***--by <bed|window>***. 
 
 ## Runing time comparison  
 
-- *samtools depth* :  1348s;
-- *bedtools genomecov* : 21074s;
-- *mosdepth* : 433s;
+- *samtools depth* :  1176s;
+- *bedtools genomecov* : 32812s;
 
 
 ```

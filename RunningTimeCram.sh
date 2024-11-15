@@ -18,6 +18,18 @@ module load samtools
 module load bedtools
 module load mosdepth
 
+# quick calculation
+
+# reference genome size
+G=3099734149
+# read length equals total bases number / total reads number
+L=$(awk 'NR==2 {print $9 / $11}' "$bas")
+# reads number equals total reads number - duplicate reads number
+N=$(awk 'NR==2 {print $11-$21}' "$bas")
+# coverage calculation
+C=$(echo "$N*$L/$G" | bc -l)
+printf "The average coverage is: %.2f\n", "$C"
+
 # samtools
 start_time=$(date +%s)
 
@@ -45,7 +57,7 @@ echo "The bedtools took $runtime seconds to execute."
 # mosdepth
 start_time=$(date +%s)
 
-mosdepth NA12878_cram $cram
+mosdepth NA12878_cram $cram # error: need reference genome file.
 awk 'NR==1 {print} {last=$0} END {print last}' NA12878_cram.mosdepth.summary.txt
 awk '{last=$4} END {print "Average coverage from mosdepth = ",last}' NA12878_cram.mosdepth.summary.txt
 
