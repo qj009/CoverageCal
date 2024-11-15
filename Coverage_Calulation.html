@@ -11,7 +11,7 @@
 
 <meta name="author" content="QiongJia" />
 
-<meta name="date" content="2024-11-14" />
+<meta name="date" content="2024-11-15" />
 
 <title>Coverage Calculation</title>
 
@@ -424,7 +424,7 @@ display: none;
 
 <h1 class="title toc-ignore">Coverage Calculation</h1>
 <h4 class="author">QiongJia</h4>
-<h4 class="date">2024-11-14</h4>
+<h4 class="date">2024-11-15</h4>
 
 </div>
 
@@ -438,17 +438,10 @@ estimate</a></li>
 <li><a href="#coverage-calculation-for-each-position" id="toc-coverage-calculation-for-each-position">Coverage calculation for
 each position</a>
 <ul>
-<li><a href="#step1-calculate-the-coverage-at-each-genomic-position." id="toc-step1-calculate-the-coverage-at-each-genomic-position.">Step1:
-calculate the coverage at each genomic position.</a></li>
-<li><a href="#step2-calculate-the-average-coverage." id="toc-step2-calculate-the-average-coverage.">Step2: calculate the
-average coverage.</a></li>
-<li><a href="#alternative-calculation" id="toc-alternative-calculation">Alternative calculation:</a></li>
-</ul></li>
-<li><a href="#other-methods" id="toc-other-methods">Other methods</a>
-<ul>
+<li><a href="#samtools" id="toc-samtools">samtools</a></li>
 <li><a href="#bedtools" id="toc-bedtools">bedtools</a></li>
-<li><a href="#mosdepth" id="toc-mosdepth">mosdepth</a></li>
 </ul></li>
+<li><a href="#other-avaialble-tools" id="toc-other-avaialble-tools">Other avaialble tools</a></li>
 <li><a href="#runing-time-comparison" id="toc-runing-time-comparison">Runing time comparison</a></li>
 </ul>
 </div>
@@ -468,53 +461,65 @@ length.<br />
 - <span class="math inline">\(L\)</span> is the read length in the
 sequencing.<br />
 - <span class="math inline">\(N\)</span> is the number of reads.</p>
-<pre><code>The ***samtool idxstats*** can be used to get chromosome lengths and number of mapped reads.</code></pre>
+<p>The haploid reference genome (GRCh38) size is <span class="math inline">\(3,099,734,149\)</span> bases (<a href="https://www.ncbi.nlm.nih.gov/grc/human/data">Reference</a>). The
+read length and number can be obtained from
+<strong><em>.bam.bas</em></strong> file.</p>
 <ol start="2" style="list-style-type: decimal">
 <li><p>The second one is more precise. The <strong><em>samtool
 depth</em></strong> can be used to calculate the coverage at each
-genomic position and the average coverage of the given BAM
-file.</p></li>
-<li><p>At the end, two other tools <strong><em>bedtools
-genomecov</em></strong> and <strong><em>mosdepth</em></strong> are
-presented briefly in coverage calculation.</p></li>
+genomic position and the average coverage of the given BAM file. Same as
+<strong><em>bedtools genomecov</em></strong>.</p></li>
+<li><p>At the end, one another tools <strong><em>mosdepth</em></strong>
+is presented briefly in coverage calculation.</p></li>
 </ol>
 </div>
 <div id="download-bam-file" class="section level2">
 <h2>Download BAM file</h2>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="bu">cd</span> ~</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">mkdir</span> TakeHomeFulgent</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="bu">cd</span> TakeHomeFulgent</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/data/</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">NA12878/exome_alignment/</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="ex">NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="va">bam</span><span class="op">=</span>NA12878.mapped.illumina.mosaik.CEU.exome.20110411.bam</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># make working directory</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="bu">cd</span> ~</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">mkdir</span> TakeHomeFulgent</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="bu">cd</span> TakeHomeFulgent</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co"># download cram file</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/CEU/NA12878/alignment/NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.cram</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co"># download cram index file</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/CEU/NA12878/alignment/NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.cram.crai</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co"># download .bam.bas file</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/CEU/NA12878/alignment/NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.bam.bas</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># define work variable</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="va">cram</span><span class="op">=</span>NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.cram</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="va">bas</span><span class="op">=</span>NA12878.alt_bwamem_GRCh38DH.20150718.CEU.low_coverage.bam.bas</span></code></pre></div>
 </div>
 <div id="quick-estimate" class="section level2">
 <h2>Quick estimate</h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">samtools</span> idxstats <span class="va">$bam</span> <span class="dt">\</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="kw">|</span> <span class="fu">awk</span> <span class="at">-vreadlen</span><span class="op">=</span>100 <span class="st">&#39;</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="st">   {</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="st">       len += $2</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="st">       nreads += $3</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="st">   }</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="st">   END {</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="st">       print nreads * readlen / len</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="st">   }</span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="st">   &#39;</span></span></code></pre></div>
-<p>The average coverage of given BAM file is:
-<strong>5.26501</strong>.</p>
-<p>However, we don’t have the information of the read length and a
-arbitrary number is used here so the estimation is not accurate.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># reference genome size</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">G</span><span class="op">=</span>3099734149</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># read length equals total bases number / total reads number</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="va">L</span><span class="op">=</span><span class="va">$(</span><span class="fu">awk</span> <span class="st">&#39;NR==2 {print $9 / $11}&#39;</span> <span class="st">&quot;</span><span class="va">$bas</span><span class="st">&quot;</span><span class="va">)</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co"># reads number equals total reads number - duplicate reads number</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="va">N</span><span class="op">=</span><span class="va">$(</span><span class="fu">awk</span> <span class="st">&#39;NR==2 {print $11-$21}&#39;</span> <span class="st">&quot;</span><span class="va">$bas</span><span class="st">&quot;</span><span class="va">)</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co"># coverage calculation</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="va">C</span><span class="op">=</span><span class="va">$(</span><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$N</span><span class="st">*</span><span class="va">$L</span><span class="st">/</span><span class="va">$G</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="fu">bc</span> <span class="at">-l</span><span class="va">)</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="bu">printf</span> <span class="st">&quot;The average coverage is: %.2f\n&quot;</span>, <span class="st">&quot;</span><span class="va">$C</span><span class="st">&quot;</span></span></code></pre></div>
+<p>The average coverage is: <strong>5.77</strong></p>
 </div>
 <div id="coverage-calculation-for-each-position" class="section level2">
 <h2>Coverage calculation for each position</h2>
-<div id="step1-calculate-the-coverage-at-each-genomic-position." class="section level3">
-<h3>Step1: calculate the coverage at each genomic position.</h3>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="ex">samtools</span> depth <span class="at">-a</span> <span class="va">$bam</span> <span class="op">&gt;</span> NA12878_coverage.txt</span></code></pre></div>
+<div id="samtools" class="section level3">
+<h3>samtools</h3>
+<p><strong>Step1</strong>: calculate the coverage at each genomic
+position.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="ex">samtools</span> depth <span class="at">-a</span> <span class="va">$cram</span> <span class="op">&gt;</span> NA12878_cram_coverage.txt</span></code></pre></div>
 <p>Overlook the coverage output.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">head</span> <span class="at">-n</span> 5 NA12878_coverage.txt</span></code></pre></div>
-<p><img src="data:image/png;base64,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" /></p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">head</span> <span class="at">-n</span> 5 NA12878_cram_coverage.txt</span></code></pre></div>
+<pre><code>##     V1 V2 V3
+## 1 chr1  1  0
+## 2 chr1  2  0
+## 3 chr1  3  0
+## 4 chr1  4  0
+## 5 chr1  5  0</code></pre>
 <p>Each line represents a genomic position. Three columns are included
 int he coverage output:</p>
 <ul>
@@ -524,65 +529,38 @@ int he coverage output:</p>
 </li>
 <li>Reads covered this position.</li>
 </ul>
+<p><strong>Step2</strong>: calculate the average coverage.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{sum+=$3} END { print &quot;Average coverage from samtools = &quot;,sum/NR}&#39;</span> NA12878_cram_coverage.txt</span></code></pre></div>
+<p>Average coverage from samtools = <strong>5.14261</strong></p>
 </div>
-<div id="step2-calculate-the-average-coverage." class="section level3">
-<h3>Step2: calculate the average coverage.</h3>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{sum+=$3} END { print &quot;Average coverage = &quot;,sum/NR}&#39;</span> NA12878_coverage.txt</span></code></pre></div>
-<p>Average coverage = <strong>3.64239</strong></p>
-</div>
-<div id="alternative-calculation" class="section level3">
-<h3>Alternative calculation:</h3>
-<p>The total length of the genome can also be calculated as below:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co">## @SQ is the reference sequence dictionary and LN in this line shows the reference sequence length. </span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">## So the $tot here represent the totle length of sample genome</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="va">tot</span><span class="op">=</span><span class="va">$(</span><span class="ex">samtools</span> view <span class="at">-H</span> <span class="va">$bam</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="at">-vFS</span><span class="op">=</span>: <span class="st">&#39;/^@SQ/ {sum+=$3} END {print sum}&#39;</span><span class="va">)</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="bu">echo</span> <span class="va">$tot</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co"># 3101804739</span></span></code></pre></div>
-<p>Then the average coverage is calculated as below:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="va">sum</span><span class="op">=</span><span class="va">$(</span><span class="fu">awk</span> <span class="st">&#39;{sum+=$3} END {print sum}&#39;</span> NA12878_coverage.txt<span class="va">)</span></span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="bu">echo</span> <span class="va">$sum</span></span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co"># 11297985096</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="va">avg</span><span class="op">=</span><span class="va">$(</span><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$sum</span><span class="st">/</span><span class="va">$tot</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="fu">bc</span> <span class="at">-l</span><span class="va">)</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="bu">echo</span> <span class="va">$avg</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co"># 3.64239</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="bu">printf</span> <span class="st">&quot;The average coverage is: %.2f\n&quot;</span> <span class="st">&quot;</span><span class="va">$avg</span><span class="st">&quot;</span></span></code></pre></div>
-<p>The average coverage is: <strong>3.64</strong></p>
-</div>
-</div>
-<div id="other-methods" class="section level2">
-<h2>Other methods</h2>
 <div id="bedtools" class="section level3">
 <h3>bedtools</h3>
 <p><strong><em>bedtools genomecov -d</em></strong> also reports the
 genome coverage per base as below:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># To use -ibam flag in bedtools genomecov, the bam file is needed to be sorted by position</span></span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="ex">samtools</span> sort <span class="va">$bam</span> <span class="kw">|</span> <span class="ex">bedtools</span> genomecov <span class="at">-ibam</span> stdin <span class="at">-d</span> <span class="op">&gt;</span> NA12878_genomecov.txt</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># To use -ibam flag in bedtools genomecov, the bam file is needed to be sorted by position</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="ex">samtools</span> sort <span class="va">$cram</span> <span class="kw">|</span> <span class="ex">bedtools</span> genomecov <span class="at">-ibam</span> stdin <span class="at">-d</span> <span class="op">&gt;</span> NA12878_cram_genomecov.txt</span></code></pre></div>
 <p>Then the average coverage would be:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{sum+=$3} END { print &quot;Average coverage = &quot;,sum/NR}&#39;</span> NA12878_genomecov.txt</span></code></pre></div>
-<p>Average coverage = <strong>3.99539</strong></p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{sum+=$3} END { print &quot;Average coverage from bedtools = &quot;,sum/NR}&#39;</span> NA12878_cram_genomecov.txt</span></code></pre></div>
+<p>Average coverage from bedtools = <strong>5.59374</strong></p>
 </div>
-<div id="mosdepth" class="section level3">
-<h3>mosdepth</h3>
+</div>
+<div id="other-avaialble-tools" class="section level2">
+<h2>Other avaialble tools</h2>
 <p><strong><em>mosdepth</em></strong> can report coverage for both
-per-base and summary result at the same time.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">mosdepth</span> NA12878 <span class="va">$bam</span></span></code></pre></div>
+per-base and summary result at the same time. It can take
+<strong>BAM</strong> file directly, but it needs reference genome file
+with <strong>CRAM</strong> file as input.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="ex">mosdepth</span> NA12878 <span class="va">$cram</span></span></code></pre></div>
 <p>The file ended with <strong><em>.mosdepth.summary.txt</em></strong>
 contain the average coverage result.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;NR==1 {print} {last=$0} END {print last}&#39;</span> NA12878.mosdepth.summary.txt</span></code></pre></div>
-<pre><code>##    chrom     length       bases mean min  max
-## 85 total 3101804739 10082458770 3.25   0 4343</code></pre>
-<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{last=$4} END {print &quot;Average coverage = &quot;,last}&#39;</span> NA12878.mosdepth.summary.txt</span></code></pre></div>
-<p>Average coverage = <strong>3.25</strong></p>
-<p>It can also report coverage based on the user defined region by using
-<strong><em>–by &lt;bed|window&gt;</em></strong>.</p>
-</div>
+<p>Besides, It can also report coverage based on the user defined region
+by using <strong><em>–by &lt;bed|window&gt;</em></strong>.</p>
 </div>
 <div id="runing-time-comparison" class="section level2">
 <h2>Runing time comparison</h2>
 <ul>
-<li><em>samtools depth</em> : 1348s;</li>
-<li><em>bedtools genomecov</em> : 21074s;</li>
-<li><em>mosdepth</em> : 433s;</li>
+<li><em>samtools depth</em> : 1176s;</li>
+<li><em>bedtools genomecov</em> : 32812s;</li>
 </ul>
 <pre><code>## R version 4.2.3 (2023-03-15)
 ## Platform: x86_64-apple-darwin17.0 (64-bit)
